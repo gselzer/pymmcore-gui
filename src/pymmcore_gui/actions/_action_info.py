@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from enum import Enum
+from importlib.metadata import entry_points
 from typing import TYPE_CHECKING, Annotated, Any, ClassVar
 
 from pydantic import BaseModel, PlainValidator
@@ -123,6 +124,11 @@ class ActionInfo(BaseModel):
     @classmethod
     def widget_actions(cls) -> dict[str, WidgetActionInfo]:
         """Return all widget actions."""
+        plugin_actions = entry_points(group="pymmcore-gui-actions")
+        for ep in plugin_actions:
+            func = ep.load()
+            if callable(func):
+                func()  # call the function to register actions
         return {
             k: v for k, v in cls._registry.items() if isinstance(v, WidgetActionInfo)
         }
