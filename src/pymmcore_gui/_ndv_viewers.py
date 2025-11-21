@@ -1,15 +1,15 @@
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING, cast
 from weakref import WeakSet, WeakValueDictionary
 
 import ndv
+import scenex as snx
 import useq
 from pymmcore_plus.mda.handlers import TensorStoreHandler
 
 from pymmcore_gui._qt.QtAds import CDockWidget
-from pymmcore_gui._qt.QtCore import QObject, QTimer, Signal
+from pymmcore_gui._qt.QtCore import QObject, Signal
 from pymmcore_gui._qt.QtWidgets import QWidget
 from pymmcore_gui.widgets.image_preview._ndv_preview import NDVPreview
 
@@ -17,9 +17,6 @@ if TYPE_CHECKING:
     from collections.abc import Iterator
 
     import numpy as np
-    from ndv.models._array_display_model import (
-        IndexMap,  # pyright: ignore[reportPrivateImportUsage]
-    )
     from pymmcore_plus import CMMCorePlus
     from pymmcore_plus.mda import SupportsFrameReady
     from pymmcore_plus.metadata import FrameMetaV1, SummaryMetaV1
@@ -42,7 +39,7 @@ class NDVViewersManager(QObject):
         The CMMCorePlus instance.
     """
 
-    mdaViewerCreated = Signal(ndv.ArrayViewer, useq.MDASequence)
+    mdaViewerCreated = Signal(ndv.Viewer, useq.MDASequence)
     previewViewerCreated = Signal(CDockWidget)
     viewerDestroyed = Signal(str)
 
@@ -50,11 +47,11 @@ class NDVViewersManager(QObject):
         super().__init__(parent)
         self._mmc = mmcore
 
-        # weakref map of {sequence_uid: ndv.ArrayViewer}
-        self._seq_viewers = WeakValueDictionary[str, ndv.ArrayViewer]()
+        # weakref map of {sequence_uid: ndv.Viewer}
+        self._seq_viewers = WeakValueDictionary[str, ndv.Viewer]()
         self._preview_dock_widgets = WeakSet[CDockWidget]()
         # currently active viewer
-        self._active_mda_viewer: ndv.ArrayViewer | None = None
+        self._active_mda_viewer: ndv.Viewer | None = None
 
         # We differentiate between handlers that were created by someone else, and
         # gathered using mda.get_output_handlers(), vs handlers that were created by us.
@@ -120,33 +117,41 @@ class NDVViewersManager(QObject):
 
         # if the viewer does not yet have data, it's likely the very first frame
         # so update the viewer's data source to the underlying handlers store
-        if viewer.data_wrapper is None:
-            handler = self._handler or self._own_handler
-            if isinstance(handler, TensorStoreHandler):
-                # TODO: temporary. maybe create the DataWrapper for the handlers
-                viewer.data = handler.store
-            else:
-                warnings.warn(
-                    f"don't know how to show data of type {type(handler)}",
-                    stacklevel=2,
-                )
-        # otherwise update the sliders to the most recently acquired frame
-        else:
-            # Add a small delay to make sure the data are available in the handler
-            # This is a bit of a hack to get around the data handlers can write data
-            # asynchronously, so the data may not be available immediately to the viewer
-            # after the handler's frameReady method is called.
-            current_index = viewer.display_model.current_index
+        model = viewer.add(frame)
+        model.transform = snx.Transform().translated(
+            (
+                (event.x_pos or 0),  # FIXME!!!!!
+                (event.y_pos or 0),
+                (event.z_pos or 0),
+            )
+        )
+        # if viewer.data_wrapper is None:
+        #     handler = self._handler or self._own_handler
+        #     if isinstance(handler, TensorStoreHandler):
+        #         # TODO: temporary. maybe create the DataWrapper for the handlers
+        #         viewer.data = handler.store
+        #     else:
+        #         warnings.warn(
+        #             f"don't know how to show data of type {type(handler)}",
+        #             stacklevel=2,
+        #         )
+        # # otherwise update the sliders to the most recently acquired frame
+        # else:
+        #     # Add a small delay to make sure the data are available in the handler
+        #     # This is a bit of a hack to get around the data handlers can write data
+        #     # asynchronously, so the data may not be available immediately to the viewer
+        #     # after the handler's frameReady method is called.
+        #     current_index = viewer.display_model.current_index
 
-            def _update(_idx: IndexMap = current_index) -> None:
-                try:
-                    _idx.update(event.index.items())
-                except Exception:  # pragma: no cover
-                    # this happens if the viewer has been closed in the meantime
-                    # usually it's a RuntimeError, but could be an EmitLoopError
-                    pass
+        #     def _update(_idx: IndexMap = current_index) -> None:
+        #         try:
+        #             _idx.update(event.index.items())
+        #         except Exception:  # pragma: no cover
+        #             # this happens if the viewer has been closed in the meantime
+        #             # usually it's a RuntimeError, but could be an EmitLoopError
+        #             pass
 
-            QTimer.singleShot(10, _update)
+        #     QTimer.singleShot(10, _update)
 
     def _on_sequence_finished(self, sequence: useq.MDASequence) -> None:
         """Called when a sequence has finished."""
@@ -155,9 +160,9 @@ class NDVViewersManager(QObject):
         # cleanup pointers somehow?
         self._is_mda_running = False
 
-    def _create_ndv_viewer(self, sequence: MDASequence) -> ndv.ArrayViewer:
+    def _create_ndv_viewer(self, sequence: MDASequence) -> ndv.Viewer:
         """Create a new ndv viewer with no data."""
-        ndv_viewer = ndv.ArrayViewer()
+        ndv_viewer = ndv.Viewer()
         self._seq_viewers[str(sequence.uid)] = ndv_viewer
         self.mdaViewerCreated.emit(ndv_viewer, sequence)
         return ndv_viewer
@@ -206,7 +211,7 @@ class NDVViewersManager(QObject):
     def __len__(self) -> int:
         return len(self._seq_viewers)
 
-    def viewers(self) -> Iterator[ndv.ArrayViewer]:
+    def viewers(self) -> Iterator[ndv.Viewer]:
         yield from (self._seq_viewers.values())
 
     def _on_property_changed(self, dev: str, prop: str, value: str) -> None:
