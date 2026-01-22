@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, cast
 from weakref import WeakSet, WeakValueDictionary
 
 import ndv
+import numpy as np
 import useq
 from pymmcore_plus.mda.handlers import TensorStoreHandler
 
@@ -16,7 +17,6 @@ from pymmcore_gui.widgets.image_preview._ndv_preview import NDVPreview
 if TYPE_CHECKING:
     from collections.abc import Iterator
 
-    import numpy as np
     from ndv.models._array_display_model import (
         IndexMap,  # pyright: ignore[reportPrivateImportUsage]
     )
@@ -198,7 +198,17 @@ class NDVViewersManager(QObject):
     def _on_image_snapped(self) -> None:
         if not self._is_mda_running:
             if preview := self._create_or_show_img_preview():
-                preview.append(self._mmc.getImage())
+                if self._mmc.getNumberOfCameraChannels() > 1:
+                    imgs = [
+                        self._mmc.getImage(i)
+                        for i in range(self._mmc.getNumberOfCameraChannels())
+                    ]
+                    img = np.stack(imgs, axis=-1)
+                else:
+                    img = self._mmc.getImage()
+
+                self._mmc.getNumberOfCameraChannels()
+                preview.append(img)
 
     def __repr__(self) -> str:  # pragma: no cover
         return f"<{self.__class__.__name__} {hex(id(self))} ({len(self)} viewer)>"
