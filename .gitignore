@@ -1,5 +1,8 @@
 .DS_Store
 
+# mkdocs build output
+site/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]

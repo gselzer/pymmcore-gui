@@ -26,8 +26,9 @@ repos:
     hooks:
       - id: markdownlint
         args: [
-            --disable=MD033, # no-inline-html
+            --disable=MD013, # line-length
             --disable=MD036, # no-emphasis-as-heading
+            --disable=MD046, # code-block-style
           ]
 
   - repo: local

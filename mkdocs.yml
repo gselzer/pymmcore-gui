@@ -1,0 +1,104 @@
+site_name: pymmcore-gui
+site_url: https://pymmcore-plus.github.io/pymmcore-gui
+site_description: A Micro-Manager GUI based on pymmcore-widgets and pymmcore-plus.
+repo_name: pymmcore-plus/pymmcore-gui
+repo_url: https://github.com/pymmcore-plus/pymmcore-gui
+edit_uri: edit/main/docs/
+strict: true
+
+watch:
+  - src/pymmcore_gui
+
+nav:
+  - pymmcore-plus: /pymmcore-plus/
+  - useq-schema: /useq-schema/
+  - pymmcore-widgets: /pymmcore-widgets/
+  - napari-micromanager: /napari-micromanager/
+  - pymmcore-gui:
+      - Overview: index.md
+      - Installation: install.md
+      - Tutorial: tutorial.md
+      - Guides:
+          - guides/hardware.md
+          - guides/mda.md
+          - guides/layout.md
+          - guides/console.md
+          - guides/scripting.md
+          - guides/settings.md
+          - guides/saving.md
+          - guides/device_adapters.md
+      - Reference:
+          - reference/cli.md
+          - reference/api.md
+          - reference/settings-schema.md
+          - reference/shortcuts.md
+          - reference/env-var.md
+      - Explanation:
+          - explanation/architecture.md
+          - explanation/prior-art.md
+          - explanation/licensing.md
+      - troubleshooting.md
+      - contributing.md
+
+theme:
+  name: "material"
+  features:
+    - content.tabs.link
+    - content.code.annotate
+    - content.code.copy
+    - navigation.tabs
+    - navigation.footer
+  icon:
+    logo: fontawesome/solid/microscope
+    repo: fontawesome/brands/github
+  palette:
+    # Palette toggle for light mode
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: dark blue
+      accent: dark blue
+      toggle:
+        icon: material/lightbulb-outline
+        name: "Switch to dark mode"
+    # Palette toggle for dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: teal
+      accent: light green
+      toggle:
+        icon: material/lightbulb
+        name: "Switch to light mode"
+
+markdown_extensions:
+  - tables
+  - pymdownx.snippets # lets you include code snippets from other files
+  - toc:
+      permalink: "#"
+  - admonition
+  - pymdownx.highlight
+  - pymdownx.extra
+  - pymdownx.details
+  - pymdownx.tabbed:
+      alternate_style: true
+  - pymdownx.emoji:
+      emoji_index: !!python/name:material.extensions.emoji.twemoji
+      emoji_generator: !!python/name:material.extensions.emoji.to_svg
+  - mkdocs-typer
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          inventories:
+            - https://docs.python.org/3/objects.inv
+            - https://pymmcore-plus.github.io/pymmcore-plus/objects.inv
+            - https://pymmcore-plus.github.io/pymmcore-widgets/objects.inv
+            - https://pymmcore-plus.github.io/useq-schema/objects.inv
+          options:
+            docstring_style: numpy
+            show_root_heading: true
+            show_root_full_path: false
+            show_signature_annotations: true
+            show_source: false
+            filters: ["^[^_]"]
